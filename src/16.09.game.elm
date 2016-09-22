@@ -66,8 +66,17 @@ view model =
 
     handY =
       toString (50 + 40 * sin angle)
+    
+    viewportWidth = 400
+    viewportHeight = 300
+
+    viewportWidthString = toString viewportWidth
+    viewportHeightString = toString viewportHeight
+
   in
-    svg [ viewBox "0 0 100 100", width "300px" ]
-      [ circle [ cx "50", cy "50", r "45", fill "#0B79CE" ] []
-      , line [ x1 "50", y1 "50", x2 handX, y2 handY, stroke "#023963" ] []
+    svg [ viewBox ("0 0 " ++ viewportWidthString ++ " " ++ viewportHeightString), width "800px" ]
+      [
+          rect [x "0", y "0", width viewportWidthString, height viewportHeightString, fill "black"] [],
+          circle [ cx "50", cy "50", r "45", fill "#0B79CE" ] [],
+          line [ x1 "50", y1 "50", x2 handX, y2 handY, stroke "#023963" ] []
       ]
