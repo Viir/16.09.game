@@ -3,6 +3,7 @@ import Html.App as Html
 import Svg exposing (..)
 import Svg.Attributes exposing (..)
 import Time exposing (Time, second)
+import Keyboard
 
 
 
@@ -36,14 +37,22 @@ init =
 
 
 type Msg
-  = Tick Time
+  = Tick Time |
+    KeyDown Keyboard.KeyCode
 
+offsetFromKeyCode keyCode =
+  case keyCode of
+    37 -> -1
+    39 -> 1
+    _ -> 0
 
 update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
   case msg of
     Tick newTime ->
       ({time = newTime, playerLocationX = model.playerLocationX}, Cmd.none)
+    KeyDown keyCode ->
+      ({time = model.time, playerLocationX = model.playerLocationX + (offsetFromKeyCode keyCode)}, Cmd.none)
 
 
 
@@ -52,7 +61,11 @@ update msg model =
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
-  Time.every second Tick
+    Sub.batch
+        [
+          Time.every second Tick,
+          Keyboard.downs KeyDown
+        ]
 
 
 
@@ -85,6 +98,6 @@ view model =
             y (toString (playerLocationY - playerSize / 2)),
             width (toString playerSize),
             height (toString playerSize),
-            fill "olive"
+            fill "DarkGreen"
             ] []
       ]
