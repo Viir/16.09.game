@@ -15,16 +15,20 @@ main =
     }
 
 
+viewportWidth = 400
+viewportHeight = 300
+
+playerSize = 30
+playerLocationY = viewportHeight - playerSize
 
 -- MODEL
 
-
-type alias Model = Time
+type alias Model = { time : Time, playerLocationX : Int }
 
 
 init : (Model, Cmd Msg)
 init =
-  (0, Cmd.none)
+  ({time = 0, playerLocationX = 0}, Cmd.none)
 
 
 
@@ -39,7 +43,7 @@ update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
   case msg of
     Tick newTime ->
-      (newTime, Cmd.none)
+      ({time = newTime, playerLocationX = model.playerLocationX}, Cmd.none)
 
 
 
@@ -59,16 +63,13 @@ view : Model -> Html Msg
 view model =
   let
     angle =
-      turns (Time.inMinutes model)
+      turns (Time.inMinutes model.time)
 
     handX =
       toString (50 + 40 * cos angle)
 
     handY =
       toString (50 + 40 * sin angle)
-    
-    viewportWidth = 400
-    viewportHeight = 300
 
     viewportWidthString = toString viewportWidth
     viewportHeightString = toString viewportHeight
@@ -78,5 +79,12 @@ view model =
       [
           rect [x "0", y "0", width viewportWidthString, height viewportHeightString, fill "black"] [],
           circle [ cx "50", cy "50", r "45", fill "#0B79CE" ] [],
-          line [ x1 "50", y1 "50", x2 handX, y2 handY, stroke "#023963" ] []
+          line [ x1 "50", y1 "50", x2 handX, y2 handY, stroke "#023963" ] [],
+          rect [
+            x (toString ((toFloat model.playerLocationX) + (viewportWidth - playerSize) / 2)),
+            y (toString (playerLocationY - playerSize / 2)),
+            width (toString playerSize),
+            height (toString playerSize),
+            fill "olive"
+            ] []
       ]
