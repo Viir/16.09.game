@@ -25,9 +25,13 @@ playerLocationY = viewportHeight - playerSize
 
 -- MODEL
 
+type alias PlayerShip =
+  { locationX : Int
+  }
+
 type alias Model =
   { time : Time
-  , playerLocationX : Int
+  , playerShip : PlayerShip
   , setKeyDown : Set.Set Int
   }
 
@@ -36,7 +40,7 @@ init : (Model, Cmd Msg)
 init =
   (
     { time = 0
-    , playerLocationX = 0
+    , playerShip = {locationX = 0}
     , setKeyDown = Set.empty
     }, Cmd.none)
 
@@ -62,12 +66,14 @@ offsetFromSetKeyDown setKeyDown =
   |> List.map offsetFromKeyCode
   |> List.sum
 
+playerShipUpdate playerShip setKeyDown =
+  { playerShip | locationX = playerShip.locationX + (offsetFromSetKeyDown setKeyDown)}
 
 update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
   case msg of
     Tick newTime ->
-      ({ model | time = newTime, playerLocationX = model.playerLocationX + (offsetFromSetKeyDown model.setKeyDown) }, Cmd.none)
+      ({ model | time = newTime, playerShip = playerShipUpdate model.playerShip model.setKeyDown }, Cmd.none)
     KeyDown keyCode ->
       ({ model | setKeyDown = Set.insert keyCode model.setKeyDown }, Cmd.none)
     KeyUp keyCode ->
@@ -94,6 +100,7 @@ subscriptions model =
 view : Model -> Html Msg
 view model =
   let
+    playerShip = model.playerShip
     viewportWidthString = toString viewportWidth
     viewportHeightString = toString viewportHeight
 
@@ -102,7 +109,7 @@ view model =
       [
           rect [x "0", y "0", width viewportWidthString, height viewportHeightString, fill "black"] [],
           rect [
-            x (toString ((toFloat model.playerLocationX) + (viewportWidth - playerSize) / 2)),
+            x (toString ((toFloat playerShip.locationX) + (viewportWidth - playerSize) / 2)),
             y (toString (playerLocationY - playerSize / 2)),
             width (toString playerSize),
             height (toString playerSize),
