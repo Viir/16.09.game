@@ -69,15 +69,18 @@ offsetFromSetKeyDown setKeyDown =
 playerShipUpdate playerShip setKeyDown =
   { playerShip | locationX = playerShip.locationX + (offsetFromSetKeyDown setKeyDown)}
 
-update : Msg -> Model -> (Model, Cmd Msg)
-update msg model =
+updateModel msg model =
   case msg of
     Tick newTime ->
-      ({ model | time = newTime, playerShip = playerShipUpdate model.playerShip model.setKeyDown }, Cmd.none)
+      { model | time = newTime, playerShip = playerShipUpdate model.playerShip model.setKeyDown }
     KeyDown keyCode ->
-      ({ model | setKeyDown = Set.insert keyCode model.setKeyDown }, Cmd.none)
+      { model | setKeyDown = Set.insert keyCode model.setKeyDown }
     KeyUp keyCode ->
-      ({ model | setKeyDown = Set.remove keyCode model.setKeyDown }, Cmd.none)
+      { model | setKeyDown = Set.remove keyCode model.setKeyDown }
+
+update : Msg -> Model -> (Model, Cmd Msg)
+update msg model =
+  (updateModel msg model, Cmd.none)
 
 
 -- SUBSCRIPTIONS
