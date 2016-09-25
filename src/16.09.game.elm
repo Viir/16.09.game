@@ -4,6 +4,7 @@ import Svg exposing (..)
 import Svg.Attributes exposing (..)
 import Time exposing (Time, second)
 import Keyboard
+import Set
 
 
 
@@ -24,12 +25,20 @@ playerLocationY = viewportHeight - playerSize
 
 -- MODEL
 
-type alias Model = { time : Time, playerLocationX : Int }
+type alias Model =
+  { time : Time
+  , playerLocationX : Int
+  , setKeyDown : Set.Set Int
+  }
 
 
 init : (Model, Cmd Msg)
 init =
-  ({time = 0, playerLocationX = 0}, Cmd.none)
+  (
+    { time = 0
+    , playerLocationX = 0
+    , setKeyDown = Set.empty
+    }, Cmd.none)
 
 
 
@@ -37,8 +46,9 @@ init =
 
 
 type Msg
-  = Tick Time |
-    KeyDown Keyboard.KeyCode
+  = Tick Time
+    | KeyDown Keyboard.KeyCode
+    | KeyUp Keyboard.KeyCode
 
 offsetFromKeyCode keyCode =
   case keyCode of
@@ -46,14 +56,24 @@ offsetFromKeyCode keyCode =
     39 -> 1
     _ -> 0
 
+offsetFromSetKeyDown setKeyDown =
+  setKeyDown
+  |> Set.toList
+  |> List.map offsetFromKeyCode
+  |> List.sum
+
+(initModel, initCmd) = init
+test = Set.insert 4 initModel.setKeyDown
+
 update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
   case msg of
     Tick newTime ->
-      ({time = newTime, playerLocationX = model.playerLocationX}, Cmd.none)
+      ({ model | time = newTime, playerLocationX = model.playerLocationX + (offsetFromSetKeyDown model.setKeyDown) }, Cmd.none)
     KeyDown keyCode ->
-      ({time = model.time, playerLocationX = model.playerLocationX + (offsetFromKeyCode keyCode)}, Cmd.none)
-
+      ({ model | setKeyDown = Set.insert keyCode model.setKeyDown }, Cmd.none)
+    KeyUp keyCode ->
+      ({ model | setKeyDown = Set.remove keyCode model.setKeyDown }, Cmd.none)
 
 
 -- SUBSCRIPTIONS
@@ -63,8 +83,9 @@ subscriptions : Model -> Sub Msg
 subscriptions model =
     Sub.batch
         [
-          Time.every second Tick,
-          Keyboard.downs KeyDown
+          Time.every second Tick
+          , Keyboard.downs KeyDown
+          , Keyboard.ups KeyUp
         ]
 
 
