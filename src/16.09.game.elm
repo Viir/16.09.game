@@ -83,7 +83,7 @@ subscriptions : Model -> Sub Msg
 subscriptions model =
     Sub.batch
         [
-          Time.every second Tick
+          Time.every (16 * Time.millisecond) Tick
           , Keyboard.downs KeyDown
           , Keyboard.ups KeyUp
         ]
