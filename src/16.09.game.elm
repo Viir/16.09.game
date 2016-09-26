@@ -21,7 +21,10 @@ viewportWidth = 400
 viewportHeight = 300
 
 playerSize = 30
+playerProjectileSize = 4
 playerLocationY = viewportHeight - playerSize
+
+playerInputFireKeyCode = 32
 
 -- MODEL
 
@@ -29,10 +32,16 @@ type alias PlayerShip =
   { locationX : Int
   }
 
+type alias PlayerProjectile =
+  { locationX : Int
+  , locationY : Int
+  }
+
 type alias Model =
   { time : Time
   , playerShip : PlayerShip
   , setKeyDown : Set.Set Int
+  , setPlayerProjectile : List PlayerProjectile
   }
 
 
@@ -42,6 +51,7 @@ init =
     { time = 0
     , playerShip = {locationX = 0}
     , setKeyDown = Set.empty
+    , setPlayerProjectile = []
     }, Cmd.none)
 
 
@@ -66,13 +76,27 @@ offsetFromSetKeyDown setKeyDown =
   |> List.map offsetFromKeyCode
   |> List.sum
 
-playerShipUpdate playerShip setKeyDown =
+updatePlayerShipLocation playerShip setKeyDown =
   { playerShip | locationX = playerShip.locationX + (offsetFromSetKeyDown setKeyDown)}
+
+playerProjectileFromPlayerShip : PlayerShip -> PlayerProjectile
+playerProjectileFromPlayerShip playerShip =
+  { locationX = playerShip.locationX, locationY = round (playerLocationY - playerSize / 2)}
+
+updatePlayerShipFire : Model -> List PlayerProjectile
+updatePlayerShipFire model =
+  let
+    fireInput = Set.member playerInputFireKeyCode model.setKeyDown
+  in
+    if fireInput then [playerProjectileFromPlayerShip model.playerShip] else []
 
 updateModel msg model =
   case msg of
     Tick newTime ->
-      { model | time = newTime, playerShip = playerShipUpdate model.playerShip model.setKeyDown }
+      { model |
+         time = newTime
+         , playerShip = updatePlayerShipLocation model.playerShip model.setKeyDown
+         , setPlayerProjectile = List.append model.setPlayerProjectile (updatePlayerShipFire model) }
     KeyDown keyCode ->
       { model | setKeyDown = Set.insert keyCode model.setKeyDown }
     KeyUp keyCode ->
@@ -99,6 +123,13 @@ subscriptions model =
 
 -- VIEW
 
+svgFromPlayerProjectile : PlayerProjectile -> Svg a
+svgFromPlayerProjectile playerProjectile =
+  circle
+    [ cx (toString ((toFloat playerProjectile.locationX) + viewportWidth / 2))
+    , cy (toString (toFloat playerProjectile.locationY))
+    , r (toString (playerProjectileSize / 2))
+    , fill "orange"][]
 
 view : Model -> Html Msg
 view model =
@@ -107,15 +138,20 @@ view model =
     viewportWidthString = toString viewportWidth
     viewportHeightString = toString viewportHeight
 
+    setPlayerProjectileVisual =
+      model.setPlayerProjectile
+      |> List.map svgFromPlayerProjectile
+
   in
     svg [ viewBox ("0 0 " ++ viewportWidthString ++ " " ++ viewportHeightString), width "800px" ]
       [
-          rect [x "0", y "0", width viewportWidthString, height viewportHeightString, fill "black"] [],
-          rect [
-            x (toString ((toFloat playerShip.locationX) + (viewportWidth - playerSize) / 2)),
-            y (toString (playerLocationY - playerSize / 2)),
-            width (toString playerSize),
-            height (toString playerSize),
-            fill "DarkGreen"
-            ] []
+        rect [x "0", y "0", width viewportWidthString, height viewportHeightString, fill "black"] [],
+        rect [
+          x (toString ((toFloat playerShip.locationX) + (viewportWidth - playerSize) / 2)),
+          y (toString (playerLocationY - playerSize / 2)),
+          width (toString playerSize),
+          height (toString playerSize),
+          fill "DarkGreen"
+          ] [],
+        g [] setPlayerProjectileVisual
       ]
