@@ -173,5 +173,9 @@ view model =
           height (toString playerShipSize),
           fill "DarkGreen"
           ] [],
-        g [] setPlayerProjectileVisual
+        g [] setPlayerProjectileVisual,
+        g [] [
+          text' [x "0", y "10", fill "white", fontFamily "arial", fontSize "10"]
+            [text (toString (model.setPlayerProjectile |> List.length))]
+        ]
       ]
