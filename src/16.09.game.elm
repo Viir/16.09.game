@@ -79,6 +79,10 @@ offsetFromSetKeyDown setKeyDown =
 updatePlayerShipLocation playerShip setKeyDown =
   { playerShip | locationX = playerShip.locationX + (offsetFromSetKeyDown setKeyDown)}
 
+updatePlayerProjectile : PlayerProjectile -> PlayerProjectile
+updatePlayerProjectile playerProjectile =
+  { playerProjectile | locationY = playerProjectile.locationY - 1 }
+
 playerProjectileFromPlayerShip : PlayerShip -> PlayerProjectile
 playerProjectileFromPlayerShip playerShip =
   { locationX = playerShip.locationX, locationY = round (playerShipLocationY - playerShipSize / 2)}
@@ -96,7 +100,10 @@ updateModel msg model =
       { model |
          time = newTime
          , playerShip = updatePlayerShipLocation model.playerShip model.setKeyDown
-         , setPlayerProjectile = List.append model.setPlayerProjectile (updatePlayerShipFire model) }
+         , setPlayerProjectile =
+            model.setPlayerProjectile
+            |> List.map updatePlayerProjectile
+            |> List.append (updatePlayerShipFire model) }
     KeyDown keyCode ->
       { model | setKeyDown = Set.insert keyCode model.setKeyDown }
     KeyUp keyCode ->
