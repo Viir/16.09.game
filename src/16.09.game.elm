@@ -20,9 +20,9 @@ main =
 viewportWidth = 400
 viewportHeight = 300
 
-playerSize = 30
+playerShipSize = 30
 playerProjectileSize = 4
-playerLocationY = viewportHeight - playerSize
+playerShipLocationY = viewportHeight - playerShipSize
 
 playerInputFireKeyCode = 32
 
@@ -81,7 +81,7 @@ updatePlayerShipLocation playerShip setKeyDown =
 
 playerProjectileFromPlayerShip : PlayerShip -> PlayerProjectile
 playerProjectileFromPlayerShip playerShip =
-  { locationX = playerShip.locationX, locationY = round (playerLocationY - playerSize / 2)}
+  { locationX = playerShip.locationX, locationY = round (playerShipLocationY - playerShipSize / 2)}
 
 updatePlayerShipFire : Model -> List PlayerProjectile
 updatePlayerShipFire model =
@@ -147,10 +147,10 @@ view model =
       [
         rect [x "0", y "0", width viewportWidthString, height viewportHeightString, fill "black"] [],
         rect [
-          x (toString ((toFloat playerShip.locationX) + (viewportWidth - playerSize) / 2)),
-          y (toString (playerLocationY - playerSize / 2)),
-          width (toString playerSize),
-          height (toString playerSize),
+          x (toString ((toFloat playerShip.locationX) + (viewportWidth - playerShipSize) / 2)),
+          y (toString (playerShipLocationY - playerShipSize / 2)),
+          width (toString playerShipSize),
+          height (toString playerShipSize),
           fill "DarkGreen"
           ] [],
         g [] setPlayerProjectileVisual
