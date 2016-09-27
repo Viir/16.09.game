@@ -7,7 +7,7 @@ import Keyboard
 import Set
 
 
-
+main : Program Never
 main =
   Html.program
     { init = init
@@ -17,13 +17,22 @@ main =
     }
 
 
+viewportWidth : number
 viewportWidth = 400
+
+viewportHeight : number
 viewportHeight = 300
 
+playerShipSize : number
 playerShipSize = 30
+
+playerProjectileSize : number
 playerProjectileSize = 4
+
+playerShipLocationY : number
 playerShipLocationY = viewportHeight - playerShipSize
 
+playerInputFireKeyCode : Int
 playerInputFireKeyCode = 32
 
 -- MODEL
@@ -64,18 +73,21 @@ type Msg
     | KeyDown Keyboard.KeyCode
     | KeyUp Keyboard.KeyCode
 
+offsetFromKeyCode : Keyboard.KeyCode -> Int
 offsetFromKeyCode keyCode =
   case keyCode of
     37 -> -1
     39 -> 1
     _ -> 0
 
+offsetFromSetKeyDown : Set.Set Keyboard.KeyCode -> Int
 offsetFromSetKeyDown setKeyDown =
   setKeyDown
   |> Set.toList
   |> List.map offsetFromKeyCode
   |> List.sum
 
+updatePlayerShipLocation : PlayerShip -> Set.Set Keyboard.KeyCode -> PlayerShip
 updatePlayerShipLocation playerShip setKeyDown =
   { playerShip | locationX = playerShip.locationX + (offsetFromSetKeyDown setKeyDown)}
 
@@ -94,6 +106,7 @@ updatePlayerShipFire model =
   in
     if fireInput then [playerProjectileFromPlayerShip model.playerShip] else []
 
+updateModel : Msg -> Model -> Model
 updateModel msg model =
   case msg of
     Tick newTime ->
