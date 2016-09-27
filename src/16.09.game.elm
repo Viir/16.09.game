@@ -91,9 +91,10 @@ updatePlayerShipLocation : PlayerShip -> Set.Set Keyboard.KeyCode -> PlayerShip
 updatePlayerShipLocation playerShip setKeyDown =
   { playerShip | locationX = playerShip.locationX + (offsetFromSetKeyDown setKeyDown)}
 
-updatePlayerProjectile : PlayerProjectile -> PlayerProjectile
+updatePlayerProjectile : PlayerProjectile -> Maybe PlayerProjectile
 updatePlayerProjectile playerProjectile =
-  { playerProjectile | locationY = playerProjectile.locationY - 1 }
+  if playerProjectile.locationY < 0 then Nothing else
+    Just { playerProjectile | locationY = playerProjectile.locationY - 1 }
 
 playerProjectileFromPlayerShip : PlayerShip -> PlayerProjectile
 playerProjectileFromPlayerShip playerShip =
@@ -116,6 +117,7 @@ updateModel msg model =
          , setPlayerProjectile =
             model.setPlayerProjectile
             |> List.map updatePlayerProjectile
+            |> List.filterMap identity
             |> List.append (updatePlayerShipFire model) }
     KeyDown keyCode ->
       { model | setKeyDown = Set.insert keyCode model.setKeyDown }
