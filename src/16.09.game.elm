@@ -26,6 +26,9 @@ viewportHeight = 300
 playerShipSize : number
 playerShipSize = 30
 
+playerShipWeaponReloadDelay : Int
+playerShipWeaponReloadDelay = 100
+
 playerProjectileSize : number
 playerProjectileSize = 4
 
@@ -39,6 +42,7 @@ playerInputFireKeyCode = 32
 
 type alias PlayerShip =
   { locationX : Int
+  , fireLastTime : Int
   }
 
 type alias PlayerProjectile =
@@ -58,7 +62,7 @@ init : (Model, Cmd Msg)
 init =
   (
     { time = 0
-    , playerShip = {locationX = 0}
+    , playerShip = {locationX = 0, fireLastTime = 0}
     , setKeyDown = Set.empty
     , setPlayerProjectile = []
     }, Cmd.none)
@@ -100,25 +104,34 @@ playerProjectileFromPlayerShip : PlayerShip -> PlayerProjectile
 playerProjectileFromPlayerShip playerShip =
   { locationX = playerShip.locationX, locationY = round (playerShipLocationY - playerShipSize / 2)}
 
-updatePlayerShipFire : Model -> List PlayerProjectile
+updatePlayerShipFire : Model -> Model
 updatePlayerShipFire model =
   let
+    playerShip = model.playerShip
     fireInput = Set.member playerInputFireKeyCode model.setKeyDown
+    fireLastAge = round model.time - playerShip.fireLastTime 
+    weaponReady = playerShipWeaponReloadDelay <= fireLastAge
+    fire = fireInput && weaponReady
+    setProjectileNew = if fire then [playerProjectileFromPlayerShip model.playerShip] else []
+    playerShipNew = if fire then { playerShip | fireLastTime = round model.time } else playerShip 
   in
-    if fireInput then [playerProjectileFromPlayerShip model.playerShip] else []
+    {model
+      | setPlayerProjectile = model.setPlayerProjectile |> List.append setProjectileNew
+      , playerShip = playerShipNew
+      }
 
 updateModel : Msg -> Model -> Model
 updateModel msg model =
   case msg of
     Tick newTime ->
+      updatePlayerShipFire
       { model |
          time = newTime
          , playerShip = updatePlayerShipLocation model.playerShip model.setKeyDown
          , setPlayerProjectile =
             model.setPlayerProjectile
             |> List.map updatePlayerProjectile
-            |> List.filterMap identity
-            |> List.append (updatePlayerShipFire model) }
+            |> List.filterMap identity }
     KeyDown keyCode ->
       { model | setKeyDown = Set.insert keyCode model.setKeyDown }
     KeyUp keyCode ->
