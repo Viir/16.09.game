@@ -169,28 +169,23 @@ svgFromPlayerProjectile playerProjectile =
 view : Model -> Html Msg
 view model =
   let
-    playerShip = model.playerShip
     viewportWidthString = toString viewportWidth
     viewportHeightString = toString viewportHeight
+    
+    angle = round (model.time / 10) % 360
 
-    setPlayerProjectileVisual =
-      model.setPlayerProjectile
-      |> List.map svgFromPlayerProjectile
+    angleString = toString angle
+
+    transformString = "translate(100 100) rotate(" ++ angleString ++ " 50 50)"
 
   in
+-- sample svg based on https://developer.mozilla.org/es/docs/Web/SVG/Attribute/transform
+
     svg [ viewBox ("0 0 " ++ viewportWidthString ++ " " ++ viewportHeightString), width "800px" ]
       [
         rect [x "0", y "0", width viewportWidthString, height viewportHeightString, fill "black"] [],
-        rect [
-          x (toString ((toFloat playerShip.locationX) + (viewportWidth - playerShipSize) / 2)),
-          y (toString (playerShipLocationY - playerShipSize / 2)),
-          width (toString playerShipSize),
-          height (toString playerShipSize),
-          fill "DarkGreen"
-          ] [],
-        g [] setPlayerProjectileVisual,
-        g [] [
-          text' [x "0", y "10", fill "white", fontFamily "arial", fontSize "10"]
-            [text (toString (model.setPlayerProjectile |> List.length))]
+        g [transform transformString] [
+          rect [x "0", y "0", width "100", height "100", fill "green" ] [],
+          text' [x "40", y "40", fill "white", fontFamily "arial", fontSize "16"] [text angleString]
         ]
       ]
