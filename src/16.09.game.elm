@@ -66,7 +66,7 @@ type alias Model =
   }
 
 newEnemy : Enemy
-newEnemy = Vec2.vec2 0 0
+newEnemy = Vec2.vec2 0 40
 
 init : (Model, Cmd Msg)
 init =
@@ -149,6 +149,31 @@ updatePlayerShip model =
   updatePlayerShipFire
       { model | playerShip = updatePlayerShipLocation model.playerShip model.setKeyDown }
 
+updateCollision : Model -> Model
+updateCollision model =
+  let
+    setCollision =
+      model.setEnemy
+      |> List.map (\enemy ->
+        (enemy, model.setPlayerProjectile
+          |> List.filterMap (\projectile ->
+            if Vec2.length (Vec2.sub enemy projectile) < ((enemySize + playerProjectileSize) // 2)
+              then Just projectile
+              else Nothing))
+        )
+
+    setEnemy  =
+      setCollision
+      |> List.filterMap (\(enemy, setProjectile) -> if 0 < (setProjectile |> List.length) then Nothing else Just enemy)
+
+    setProjectileCollided =
+      setCollision |> List.map snd |> List.concat
+
+    setPlayerProjectile =
+      model.setPlayerProjectile |> List.filter (\projectile -> not (List.member projectile setProjectileCollided))
+  in
+    { model | setEnemy = setEnemy, setPlayerProjectile = setPlayerProjectile }
+
 updateModel : Msg -> Model -> Model
 updateModel msg model =
   case msg of
@@ -156,6 +181,7 @@ updateModel msg model =
       updateModelSequence
         [ updatePlayerShip
         , updateSetPlayerProjectile
+        , updateCollision
         ] { model | time = newTime}
     KeyDown keyCode ->
       { model | setKeyDown = Set.insert keyCode model.setKeyDown }
