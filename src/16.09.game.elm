@@ -104,6 +104,12 @@ offsetFromSetKeyDown setKeyDown =
   |> List.map offsetFromKeyCode
   |> List.sum
 
+updateModelSequence : List (Model -> Model) -> Model -> Model
+updateModelSequence sequence model =
+ case sequence of
+    [] -> model
+    head::tail -> updateModelSequence tail (head model)
+
 updatePlayerShipLocation : PlayerShip -> Set.Set Keyboard.KeyCode -> PlayerShip
 updatePlayerShipLocation playerShip setKeyDown =
   { playerShip | locationX = playerShip.locationX + (offsetFromSetKeyDown setKeyDown)}
@@ -112,6 +118,13 @@ updatePlayerProjectile : PlayerProjectile -> Maybe PlayerProjectile
 updatePlayerProjectile playerProjectile =
   if playerProjectile.locationY < 0 then Nothing else
     Just { playerProjectile | locationY = playerProjectile.locationY - 1 }
+
+updateSetPlayerProjectile : Model -> Model
+updateSetPlayerProjectile model =
+  { model | setPlayerProjectile =
+      model.setPlayerProjectile
+      |> List.map updatePlayerProjectile
+      |> List.filterMap identity }
 
 playerProjectileFromPlayerShip : PlayerShip -> PlayerProjectile
 playerProjectileFromPlayerShip playerShip =
@@ -133,18 +146,19 @@ updatePlayerShipFire model =
       , playerShip = playerShipNew
       }
 
+updatePlayerShip : Model -> Model
+updatePlayerShip model =
+  updatePlayerShipFire
+      { model | playerShip = updatePlayerShipLocation model.playerShip model.setKeyDown }
+
 updateModel : Msg -> Model -> Model
 updateModel msg model =
   case msg of
     Tick newTime ->
-      updatePlayerShipFire
-      { model |
-         time = newTime
-         , playerShip = updatePlayerShipLocation model.playerShip model.setKeyDown
-         , setPlayerProjectile =
-            model.setPlayerProjectile
-            |> List.map updatePlayerProjectile
-            |> List.filterMap identity }
+      updateModelSequence
+        [ updatePlayerShip
+        , updateSetPlayerProjectile
+        ] { model | time = newTime}
     KeyDown keyCode ->
       { model | setKeyDown = Set.insert keyCode model.setKeyDown }
     KeyUp keyCode ->
