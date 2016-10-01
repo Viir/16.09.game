@@ -38,6 +38,9 @@ playerShipLocationY = viewportHeight - playerShipSize
 playerInputFireKeyCode : Int
 playerInputFireKeyCode = 32
 
+enemySize : number
+enemySize = 16
+
 -- MODEL
 
 type alias PlayerShip =
@@ -50,13 +53,22 @@ type alias PlayerProjectile =
   , locationY : Int
   }
 
+type alias Enemy =
+  { locationX : Int
+  , locationY : Int
+  }
+
+
 type alias Model =
   { time : Time
   , playerShip : PlayerShip
   , setKeyDown : Set.Set Int
   , setPlayerProjectile : List PlayerProjectile
+  , setEnemy : List Enemy
   }
 
+newEnemy : Enemy
+newEnemy = {locationX = 0, locationY = 0}
 
 init : (Model, Cmd Msg)
 init =
@@ -65,6 +77,7 @@ init =
     , playerShip = {locationX = 0, fireLastTime = 0}
     , setKeyDown = Set.empty
     , setPlayerProjectile = []
+    , setEnemy = [newEnemy]
     }, Cmd.none)
 
 
@@ -158,13 +171,21 @@ subscriptions model =
 
 -- VIEW
 
+svgCircleFromLocation : String -> number -> {locationX : Int, locationY : Int} -> Svg a
+svgCircleFromLocation fillColorString radius location =
+  circle
+    [ cx (toString ((toFloat location.locationX) + viewportWidth / 2))
+    , cy (toString (toFloat location.locationY))
+    , r (toString radius)
+    , fill fillColorString][]
+
 svgFromPlayerProjectile : PlayerProjectile -> Svg a
 svgFromPlayerProjectile playerProjectile =
-  circle
-    [ cx (toString ((toFloat playerProjectile.locationX) + viewportWidth / 2))
-    , cy (toString (toFloat playerProjectile.locationY))
-    , r (toString (playerProjectileSize / 2))
-    , fill "orange"][]
+  svgCircleFromLocation "orange" (playerProjectileSize / 2) playerProjectile
+
+svgFromEnemy : Enemy -> Svg a
+svgFromEnemy enemy =
+  svgCircleFromLocation "grey" (enemySize / 2) enemy
 
 view : Model -> Html Msg
 view model =
@@ -177,6 +198,10 @@ view model =
       model.setPlayerProjectile
       |> List.map svgFromPlayerProjectile
 
+    setEnemyVisual =
+      model.setEnemy
+      |> List.map svgFromEnemy
+
   in
     svg [ viewBox ("0 0 " ++ viewportWidthString ++ " " ++ viewportHeightString), width "800px" ]
       [
@@ -188,6 +213,7 @@ view model =
           height (toString playerShipSize),
           fill "DarkGreen"
           ] [],
+        g [] setEnemyVisual,
         g [] setPlayerProjectileVisual,
         g [] [
           text' [x "0", y "10", fill "white", fontFamily "arial", fontSize "10"]
