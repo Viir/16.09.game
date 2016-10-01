@@ -6,6 +6,7 @@ import Time exposing (Time, second)
 import Keyboard
 import Set
 import Vector2Int as Vec2
+import ListTool
 
 
 main : Program Never
@@ -60,6 +61,7 @@ type alias Enemy = Vec2.Vec2
 type alias Model =
   { time : Time
   , playerShip : PlayerShip
+  , playerScore : Int
   , setKeyDown : Set.Set Int
   , setPlayerProjectile : List PlayerProjectile
   , setEnemy : List Enemy
@@ -73,6 +75,7 @@ init =
   (
     { time = 0
     , playerShip = {locationX = 0, fireLastTime = 0}
+    , playerScore = 0
     , setKeyDown = Set.empty
     , setPlayerProjectile = []
     , setEnemy = [newEnemy]
@@ -162,9 +165,12 @@ updateCollision model =
               else Nothing))
         )
 
-    setEnemy  =
+    setEnemyDestroy =
       setCollision
-      |> List.filterMap (\(enemy, setProjectile) -> if 0 < (setProjectile |> List.length) then Nothing else Just enemy)
+      |> List.filterMap (\(enemy, setProjectile) -> if 0 < (setProjectile |> List.length) then Just enemy else Nothing)
+
+    setEnemy  =
+      model.setEnemy |> ListTool.except setEnemyDestroy
 
     setProjectileCollided =
       setCollision |> List.map snd |> List.concat
@@ -172,7 +178,10 @@ updateCollision model =
     setPlayerProjectile =
       model.setPlayerProjectile |> List.filter (\projectile -> not (List.member projectile setProjectileCollided))
   in
-    { model | setEnemy = setEnemy, setPlayerProjectile = setPlayerProjectile }
+    { model
+      | setEnemy = setEnemy
+      , setPlayerProjectile = setPlayerProjectile
+      , playerScore = model.playerScore + (setEnemyDestroy |> List.length) }
 
 updateModel : Msg -> Model -> Model
 updateModel msg model =
@@ -255,6 +264,6 @@ view model =
         g [] setPlayerProjectileVisual,
         g [] [
           text' [x "0", y "10", fill "white", fontFamily "arial", fontSize "10"]
-            [text (toString (model.setPlayerProjectile |> List.length))]
+            [text ("score: " ++ (toString model.playerScore))]
         ]
       ]
