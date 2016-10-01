@@ -5,6 +5,7 @@ import Svg.Attributes exposing (..)
 import Time exposing (Time, second)
 import Keyboard
 import Set
+import Vector2Int as Vec2
 
 
 main : Program Never
@@ -17,13 +18,13 @@ main =
     }
 
 
-viewportWidth : number
+viewportWidth : Int
 viewportWidth = 400
 
-viewportHeight : number
+viewportHeight : Int
 viewportHeight = 300
 
-playerShipSize : number
+playerShipSize : Int
 playerShipSize = 30
 
 playerShipWeaponReloadDelay : Int
@@ -32,7 +33,10 @@ playerShipWeaponReloadDelay = 100
 playerProjectileSize : number
 playerProjectileSize = 4
 
-playerShipLocationY : number
+playerProjectileSpeed : Vec2.Vec2
+playerProjectileSpeed = Vec2.vec2 0 -4
+
+playerShipLocationY : Int
 playerShipLocationY = viewportHeight - playerShipSize
 
 playerInputFireKeyCode : Int
@@ -48,15 +52,9 @@ type alias PlayerShip =
   , fireLastTime : Int
   }
 
-type alias PlayerProjectile =
-  { locationX : Int
-  , locationY : Int
-  }
+type alias PlayerProjectile = Vec2.Vec2
 
-type alias Enemy =
-  { locationX : Int
-  , locationY : Int
-  }
+type alias Enemy = Vec2.Vec2
 
 
 type alias Model =
@@ -68,7 +66,7 @@ type alias Model =
   }
 
 newEnemy : Enemy
-newEnemy = {locationX = 0, locationY = 0}
+newEnemy = Vec2.vec2 0 0
 
 init : (Model, Cmd Msg)
 init =
@@ -116,8 +114,8 @@ updatePlayerShipLocation playerShip setKeyDown =
 
 updatePlayerProjectile : PlayerProjectile -> Maybe PlayerProjectile
 updatePlayerProjectile playerProjectile =
-  if playerProjectile.locationY < 0 then Nothing else
-    Just { playerProjectile | locationY = playerProjectile.locationY - 1 }
+  if playerProjectile.y < 0 then Nothing else
+    Just (Vec2.add playerProjectile playerProjectileSpeed)
 
 updateSetPlayerProjectile : Model -> Model
 updateSetPlayerProjectile model =
@@ -128,7 +126,7 @@ updateSetPlayerProjectile model =
 
 playerProjectileFromPlayerShip : PlayerShip -> PlayerProjectile
 playerProjectileFromPlayerShip playerShip =
-  { locationX = playerShip.locationX, locationY = round (playerShipLocationY - playerShipSize / 2)}
+  Vec2.vec2 playerShip.locationX (playerShipLocationY - playerShipSize // 2)
 
 updatePlayerShipFire : Model -> Model
 updatePlayerShipFire model =
@@ -185,11 +183,11 @@ subscriptions model =
 
 -- VIEW
 
-svgCircleFromLocation : String -> number -> {locationX : Int, locationY : Int} -> Svg a
+svgCircleFromLocation : String -> number -> Vec2.Vec2 -> Svg a
 svgCircleFromLocation fillColorString radius location =
   circle
-    [ cx (toString ((toFloat location.locationX) + viewportWidth / 2))
-    , cy (toString (toFloat location.locationY))
+    [ cx (toString (location.x + viewportWidth // 2))
+    , cy (toString location.y)
     , r (toString radius)
     , fill fillColorString][]
 
@@ -221,8 +219,8 @@ view model =
       [
         rect [x "0", y "0", width viewportWidthString, height viewportHeightString, fill "black"] [],
         rect [
-          x (toString ((toFloat playerShip.locationX) + (viewportWidth - playerShipSize) / 2)),
-          y (toString (playerShipLocationY - playerShipSize / 2)),
+          x (toString (playerShip.locationX + (viewportWidth - playerShipSize) // 2)),
+          y (toString (playerShipLocationY - playerShipSize // 2)),
           width (toString playerShipSize),
           height (toString playerShipSize),
           fill "DarkGreen"
