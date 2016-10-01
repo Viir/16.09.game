@@ -67,8 +67,16 @@ type alias Model =
   , setEnemy : List Enemy
   }
 
-newEnemy : Enemy
-newEnemy = Vec2.vec2 0 40
+listEnemyLocationSeed : List Int
+listEnemyLocationSeed = [ 2342, 6672, 8561, 4729, 9394 ]
+
+enemySpreadWith : Int
+enemySpreadWith = (viewportWidth * 3) // 4
+
+listEnemy : List Enemy
+listEnemy = [0..99] |> List.map (\enemyIndex ->
+  { x = (Maybe.withDefault 0 (ListTool.elementAtIndexWrapped enemyIndex listEnemyLocationSeed) * (enemyIndex % 7)) % enemySpreadWith - enemySpreadWith // 2
+  , y = -enemyIndex * 100 })
 
 init : (Model, Cmd Msg)
 init =
@@ -78,7 +86,7 @@ init =
     , playerScore = 0
     , setKeyDown = Set.empty
     , setPlayerProjectile = []
-    , setEnemy = [newEnemy]
+    , setEnemy = listEnemy
     }, Cmd.none)
 
 
@@ -183,6 +191,10 @@ updateCollision model =
       , setPlayerProjectile = setPlayerProjectile
       , playerScore = model.playerScore + (setEnemyDestroy |> List.length) }
 
+updateSetEnemy : Model -> Model
+updateSetEnemy model =
+  { model | setEnemy = model.setEnemy |> List.map (\enemy -> Vec2.add enemy (Vec2.vec2 0 1))}
+
 updateModel : Msg -> Model -> Model
 updateModel msg model =
   case msg of
@@ -191,6 +203,7 @@ updateModel msg model =
         [ updatePlayerShip
         , updateSetPlayerProjectile
         , updateCollision
+        , updateSetEnemy
         ] { model | time = newTime}
     KeyDown keyCode ->
       { model | setKeyDown = Set.insert keyCode model.setKeyDown }
