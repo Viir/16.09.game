@@ -46,6 +46,9 @@ playerInputFireKeyCode = 32
 enemySize : number
 enemySize = 16
 
+enemyHitAfterglowDuration : Int
+enemyHitAfterglowDuration = 50
+
 -- MODEL
 
 type alias PlayerShip =
@@ -58,6 +61,7 @@ type alias PlayerProjectile = Vec2.Vec2
 type alias Enemy =
   { location : Vec2.Vec2
   , hitpoints : Int
+  , hitLastTime : Int
   }
 
 
@@ -82,6 +86,7 @@ listEnemy = [0..99] |> List.map (\enemyIndex ->
       { x = (Maybe.withDefault 0 (ListTool.elementAtIndexWrapped enemyIndex listEnemyLocationSeed) * (enemyIndex % 7)) % enemySpreadWith - enemySpreadWith // 2
       , y = -enemyIndex * 100 }
   , hitpoints = 4
+  , hitLastTime = 0
   })
 
 init : (Model, Cmd Msg)
@@ -186,9 +191,13 @@ updateCollision model =
       setCollision
         |> List.filterMap (\(enemy, setProjectile) ->
             let
-              hitpoints = enemy.hitpoints - (setProjectile |> List.length)
+              damage = setProjectile |> List.length
+              hitpoints = enemy.hitpoints - damage
             in
-              if 0 < hitpoints then Just { enemy | hitpoints = hitpoints} else Nothing)
+              if 0 < hitpoints then Just { enemy
+                | hitpoints = hitpoints
+                , hitLastTime = if 0 < damage then round model.time else enemy.hitLastTime
+                } else Nothing)
 
     setEnemyDestroyedCount = (model.setEnemy |> List.length) - (setEnemy |> List.length)
 
@@ -256,9 +265,12 @@ svgFromPlayerProjectile : PlayerProjectile -> Svg a
 svgFromPlayerProjectile playerProjectile =
   svgCircleFromLocation "orange" (playerProjectileSize / 2) playerProjectile
 
-svgFromEnemy : Enemy -> Svg a
-svgFromEnemy enemy =
-  svgCircleFromLocation "grey" (enemySize / 2) enemy.location
+svgFromEnemy : Enemy -> Bool -> Svg a
+svgFromEnemy enemy hit =
+  let
+    color = if hit then "white" else "grey"
+  in
+    svgCircleFromLocation color (enemySize / 2) enemy.location
 
 view : Model -> Html Msg
 view model =
@@ -273,7 +285,10 @@ view model =
 
     setEnemyVisual =
       model.setEnemy
-      |> List.map svgFromEnemy
+      |> List.map (\enemy ->
+        let hit = (round model.time - enemy.hitLastTime) < enemyHitAfterglowDuration
+        in
+          svgFromEnemy enemy hit)
 
   in
     svg [ viewBox ("0 0 " ++ viewportWidthString ++ " " ++ viewportHeightString), width "800px" ]
