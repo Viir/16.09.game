@@ -49,6 +49,9 @@ enemySize = 16
 enemyHitAfterglowDuration : Int
 enemyHitAfterglowDuration = 50
 
+enemyDestroyParticleTemplate : ParticleTemplate
+enemyDestroyParticleTemplate = { ageMax = 700, color = "orange", size = 5 }
+
 -- MODEL
 
 type alias PlayerShip =
@@ -64,6 +67,18 @@ type alias Enemy =
   , hitLastTime : Int
   }
 
+type alias ParticleTemplate =
+  { ageMax : Int
+  , size : Int
+  , color : String
+  }
+
+type alias Particle =
+  { location : Vec2.Vec2
+  , velocity : Vec2.Vec2
+  , spawnTime : Int
+  , template : ParticleTemplate
+  }
 
 type alias Model =
   { time : Time
@@ -72,6 +87,7 @@ type alias Model =
   , setKeyDown : Set.Set Int
   , setPlayerProjectile : List PlayerProjectile
   , setEnemy : List Enemy
+  , setParticle : List Particle
   }
 
 listEnemyLocationSeed : List Int
@@ -98,6 +114,7 @@ init =
     , setKeyDown = Set.empty
     , setPlayerProjectile = []
     , setEnemy = listEnemy
+    , setParticle = []
     }, Cmd.none)
 
 
@@ -177,6 +194,8 @@ updatePlayerShipFire model =
 updateCollision : Model -> Model
 updateCollision model =
   let
+    time = round model.time
+
     setCollision =
       model.setEnemy
       |> List.map (\enemy ->
@@ -199,22 +218,55 @@ updateCollision model =
                 , hitLastTime = if 0 < damage then round model.time else enemy.hitLastTime
                 } else Nothing)
 
-    setEnemyDestroyedCount = (model.setEnemy |> List.length) - (setEnemy |> List.length)
+    locationFromEnemy enemy = enemy.location
+ 
+    setEnemyDestroyedLocation =
+      model.setEnemy
+      |> List.map locationFromEnemy
+      |> ListTool.except (setEnemy |> List.map locationFromEnemy)
+
+    setEnemyDestroyedCount = setEnemyDestroyedLocation |> List.length
 
     setProjectileCollided =
       setCollision |> List.map snd |> List.concat
 
     setPlayerProjectile =
       model.setPlayerProjectile |> List.filter (\projectile -> not (List.member projectile setProjectileCollided))
+
+    setParticleAdd = setEnemyDestroyedLocation
+      |> List.map (\location ->
+        [0..3]
+        |> List.map (\particleIndex ->
+          { location = location
+          , velocity = { x = (particleIndex % 2) * 2 - 1, y = (particleIndex // 2 % 2) * 2 - 1 }
+          , spawnTime = time
+          , template = enemyDestroyParticleTemplate
+          })
+      )
+      |> List.concat
+
   in
     { model
       | setEnemy = setEnemy
       , setPlayerProjectile = setPlayerProjectile
-      , playerScore = model.playerScore + setEnemyDestroyedCount }
+      , playerScore = model.playerScore + setEnemyDestroyedCount
+      , setParticle = model.setParticle |> List.append setParticleAdd }
 
 updateSetEnemy : Model -> Model
 updateSetEnemy model =
   { model | setEnemy = model.setEnemy |> List.map (\enemy -> {enemy | location = Vec2.add enemy.location (Vec2.vec2 0 1)})}
+
+updateSetParticle : Model -> Model
+updateSetParticle model =
+  let
+    setParticle = model.setParticle
+    |> List.filterMap (\particle ->
+      let
+        age = round model.time - particle.spawnTime
+      in
+        if particle.template.ageMax < age then Nothing else Just { particle | location = Vec2.add particle.location particle.velocity })
+  in
+    { model | setParticle = setParticle }
 
 updateModel : Msg -> Model -> Model
 updateModel msg model =
@@ -226,6 +278,7 @@ updateModel msg model =
         , updateSetPlayerProjectile
         , updateCollision
         , updateSetEnemy
+        , updateSetParticle
         ] { model | time = newTime}
     KeyDown keyCode ->
       { model | setKeyDown = Set.insert keyCode model.setKeyDown }
@@ -272,9 +325,17 @@ svgFromEnemy enemy hit =
   in
     svgCircleFromLocation color (enemySize / 2) enemy.location
 
+svgFromParticle : Particle -> Int -> Svg a
+svgFromParticle particle time =
+  let
+    age = time - particle.spawnTime
+  in
+    svgCircleFromLocation particle.template.color (toFloat particle.template.size / 2) particle.location
+
 view : Model -> Html Msg
 view model =
   let
+    time = round model.time
     playerShip = model.playerShip
     viewportWidthString = toString viewportWidth
     viewportHeightString = toString viewportHeight
@@ -290,6 +351,10 @@ view model =
         in
           svgFromEnemy enemy hit)
 
+    setParticleVisual =
+      model.setParticle
+      |> List.map (\particle -> svgFromParticle particle time)
+
   in
     svg [ viewBox ("0 0 " ++ viewportWidthString ++ " " ++ viewportHeightString), width "800px" ]
       [
@@ -303,6 +368,7 @@ view model =
           ] [],
         g [] setEnemyVisual,
         g [] setPlayerProjectileVisual,
+        g [] setParticleVisual,
         g [] [
           text' [x "0", y "10", fill "white", fontFamily "arial", fontSize "10"]
             [text ("score: " ++ (toString model.playerScore))]
