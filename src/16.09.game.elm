@@ -124,8 +124,11 @@ updatePlayerShipLocation model =
   let
     setKeyDown = model.setKeyDown
     playerShip = model.playerShip
+    playerShipLocation = Basics.min
+        (viewportWidth // 2)
+        (Basics.max (-viewportWidth // 2) (playerShip.locationX + (offsetFromSetKeyDown setKeyDown) * 3))
   in
-    { model | playerShip = { playerShip | locationX = playerShip.locationX + (offsetFromSetKeyDown setKeyDown)}}
+    { model | playerShip = { playerShip | locationX = playerShipLocation}}
 
 updatePlayerProjectile : PlayerProjectile -> Maybe PlayerProjectile
 updatePlayerProjectile playerProjectile =
