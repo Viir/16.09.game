@@ -55,7 +55,10 @@ type alias PlayerShip =
 
 type alias PlayerProjectile = Vec2.Vec2
 
-type alias Enemy = Vec2.Vec2
+type alias Enemy =
+  { location : Vec2.Vec2
+  , hitpoints : Int
+  }
 
 
 type alias Model =
@@ -75,8 +78,11 @@ enemySpreadWith = (viewportWidth * 3) // 4
 
 listEnemy : List Enemy
 listEnemy = [0..99] |> List.map (\enemyIndex ->
-  { x = (Maybe.withDefault 0 (ListTool.elementAtIndexWrapped enemyIndex listEnemyLocationSeed) * (enemyIndex % 7)) % enemySpreadWith - enemySpreadWith // 2
-  , y = -enemyIndex * 100 })
+  { location =
+      { x = (Maybe.withDefault 0 (ListTool.elementAtIndexWrapped enemyIndex listEnemyLocationSeed) * (enemyIndex % 7)) % enemySpreadWith - enemySpreadWith // 2
+      , y = -enemyIndex * 100 }
+  , hitpoints = 4
+  })
 
 init : (Model, Cmd Msg)
 init =
@@ -171,17 +177,20 @@ updateCollision model =
       |> List.map (\enemy ->
         (enemy, model.setPlayerProjectile
           |> List.filterMap (\projectile ->
-            if Vec2.length (Vec2.sub enemy projectile) < ((enemySize + playerProjectileSize) // 2)
+            if Vec2.length (Vec2.sub enemy.location projectile) < ((enemySize + playerProjectileSize) // 2)
               then Just projectile
               else Nothing))
         )
 
-    setEnemyDestroy =
-      setCollision
-      |> List.filterMap (\(enemy, setProjectile) -> if 0 < (setProjectile |> List.length) then Just enemy else Nothing)
-
     setEnemy  =
-      model.setEnemy |> ListTool.except setEnemyDestroy
+      setCollision
+        |> List.filterMap (\(enemy, setProjectile) ->
+            let
+              hitpoints = enemy.hitpoints - (setProjectile |> List.length)
+            in
+              if 0 < hitpoints then Just { enemy | hitpoints = hitpoints} else Nothing)
+
+    setEnemyDestroyedCount = (model.setEnemy |> List.length) - (setEnemy |> List.length)
 
     setProjectileCollided =
       setCollision |> List.map snd |> List.concat
@@ -192,11 +201,11 @@ updateCollision model =
     { model
       | setEnemy = setEnemy
       , setPlayerProjectile = setPlayerProjectile
-      , playerScore = model.playerScore + (setEnemyDestroy |> List.length) }
+      , playerScore = model.playerScore + setEnemyDestroyedCount }
 
 updateSetEnemy : Model -> Model
 updateSetEnemy model =
-  { model | setEnemy = model.setEnemy |> List.map (\enemy -> Vec2.add enemy (Vec2.vec2 0 1))}
+  { model | setEnemy = model.setEnemy |> List.map (\enemy -> {enemy | location = Vec2.add enemy.location (Vec2.vec2 0 1)})}
 
 updateModel : Msg -> Model -> Model
 updateModel msg model =
@@ -249,7 +258,7 @@ svgFromPlayerProjectile playerProjectile =
 
 svgFromEnemy : Enemy -> Svg a
 svgFromEnemy enemy =
-  svgCircleFromLocation "grey" (enemySize / 2) enemy
+  svgCircleFromLocation "grey" (enemySize / 2) enemy.location
 
 view : Model -> Html Msg
 view model =
