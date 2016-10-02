@@ -1,0 +1,6 @@
+{
+  "name": "16.09.game",
+  "tagline": "Videogame implemented in elm.",
+  "body": "# 16.09.game\r\nVideogame implemented in elm.\r\n\r\n### controls\r\n- move: arrow keys\r\n- fire: space key\r\n",
+  "note": "Don't delete this file! It's used internally to help with page regeneration."
+}
