@@ -119,9 +119,13 @@ updateModelSequence sequence model =
     [] -> model
     head::tail -> updateModelSequence tail (head model)
 
-updatePlayerShipLocation : PlayerShip -> Set.Set Keyboard.KeyCode -> PlayerShip
-updatePlayerShipLocation playerShip setKeyDown =
-  { playerShip | locationX = playerShip.locationX + (offsetFromSetKeyDown setKeyDown)}
+updatePlayerShipLocation : Model -> Model
+updatePlayerShipLocation model =
+  let
+    setKeyDown = model.setKeyDown
+    playerShip = model.playerShip
+  in
+    { model | playerShip = { playerShip | locationX = playerShip.locationX + (offsetFromSetKeyDown setKeyDown)}}
 
 updatePlayerProjectile : PlayerProjectile -> Maybe PlayerProjectile
 updatePlayerProjectile playerProjectile =
@@ -155,10 +159,6 @@ updatePlayerShipFire model =
       , playerShip = playerShipNew
       }
 
-updatePlayerShip : Model -> Model
-updatePlayerShip model =
-  updatePlayerShipFire
-      { model | playerShip = updatePlayerShipLocation model.playerShip model.setKeyDown }
 
 updateCollision : Model -> Model
 updateCollision model =
@@ -200,7 +200,8 @@ updateModel msg model =
   case msg of
     Tick newTime ->
       updateModelSequence
-        [ updatePlayerShip
+        [ updatePlayerShipFire
+        , updatePlayerShipLocation
         , updateSetPlayerProjectile
         , updateCollision
         , updateSetEnemy
