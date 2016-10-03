@@ -81,7 +81,7 @@ type alias Particle =
   }
 
 type alias Model =
-  { time : Time
+  { time : Int
   , playerShip : PlayerShip
   , playerScore : Int
   , setKeyDown : Set.Set Int
@@ -179,11 +179,11 @@ updatePlayerShipFire model =
   let
     playerShip = model.playerShip
     fireInput = Set.member playerInputFireKeyCode model.setKeyDown
-    fireLastAge = round model.time - playerShip.fireLastTime 
+    fireLastAge = model.time - playerShip.fireLastTime 
     weaponReady = playerShipWeaponReloadDelay <= fireLastAge
     fire = fireInput && weaponReady
     setProjectileNew = if fire then [playerProjectileFromPlayerShip model.playerShip] else []
-    playerShipNew = if fire then { playerShip | fireLastTime = round model.time } else playerShip 
+    playerShipNew = if fire then { playerShip | fireLastTime = model.time } else playerShip 
   in
     {model
       | setPlayerProjectile = model.setPlayerProjectile |> List.append setProjectileNew
@@ -194,7 +194,7 @@ updatePlayerShipFire model =
 updateCollision : Model -> Model
 updateCollision model =
   let
-    time = round model.time
+    time = model.time
 
     setCollision =
       model.setEnemy
@@ -215,7 +215,7 @@ updateCollision model =
             in
               if 0 < hitpoints then Just { enemy
                 | hitpoints = hitpoints
-                , hitLastTime = if 0 < damage then round model.time else enemy.hitLastTime
+                , hitLastTime = if 0 < damage then model.time else enemy.hitLastTime
                 } else Nothing)
 
     locationFromEnemy enemy = enemy.location
@@ -262,7 +262,7 @@ updateSetParticle model =
     setParticle = model.setParticle
     |> List.filterMap (\particle ->
       let
-        age = round model.time - particle.spawnTime
+        age = model.time - particle.spawnTime
       in
         if particle.template.ageMax < age then Nothing else Just { particle | location = Vec2.add particle.location particle.velocity })
   in
@@ -279,7 +279,7 @@ updateModel msg model =
         , updateCollision
         , updateSetEnemy
         , updateSetParticle
-        ] { model | time = newTime}
+        ] { model | time = round newTime}
     KeyDown keyCode ->
       { model | setKeyDown = Set.insert keyCode model.setKeyDown }
     KeyUp keyCode ->
@@ -335,7 +335,7 @@ svgFromParticle particle time =
 view : Model -> Html Msg
 view model =
   let
-    time = round model.time
+    time = model.time
     playerShip = model.playerShip
     viewportWidthString = toString viewportWidth
     viewportHeightString = toString viewportHeight
@@ -347,7 +347,7 @@ view model =
     setEnemyVisual =
       model.setEnemy
       |> List.map (\enemy ->
-        let hit = (round model.time - enemy.hitLastTime) < enemyHitAfterglowDuration
+        let hit = (time - enemy.hitLastTime) < enemyHitAfterglowDuration
         in
           svgFromEnemy enemy hit)
 
