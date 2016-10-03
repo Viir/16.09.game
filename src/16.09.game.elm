@@ -43,14 +43,21 @@ playerShipLocationY = viewportHeight - playerShipSize
 playerInputFireKeyCode : Int
 playerInputFireKeyCode = 32
 
-enemySize : number
+enemySize : Int
 enemySize = 16
 
 enemyHitAfterglowDuration : Int
 enemyHitAfterglowDuration = 50
 
 enemyDestroyParticleTemplate : ParticleTemplate
-enemyDestroyParticleTemplate = { ageMax = 700, color = "orange", size = 5 }
+enemyDestroyParticleTemplate =
+  { ageMax = 700
+  , color = "orange"
+  , sizeStart = enemySize * 1000
+  , sizeFinal = enemySize * 2000
+  , opacityStart = 1000
+  , opacityFinal = 0
+  }
 
 -- MODEL
 
@@ -69,7 +76,10 @@ type alias Enemy =
 
 type alias ParticleTemplate =
   { ageMax : Int
-  , size : Int
+  , sizeStart : Int
+  , sizeFinal : Int
+  , opacityStart : Int
+  , opacityFinal : Int
   , color : String
   }
 
@@ -306,13 +316,17 @@ subscriptions model =
 
 -- VIEW
 
-svgCircleFromLocation : String -> number -> Vec2.Vec2 -> Svg a
-svgCircleFromLocation fillColorString radius location =
+svgCircleWithOpacityFromLocation : Float -> String -> number -> Vec2.Vec2 -> Svg a
+svgCircleWithOpacityFromLocation opacityValue fillColorString radius location =
   circle
     [ cx (toString (location.x + viewportWidth // 2))
     , cy (toString location.y)
     , r (toString radius)
-    , fill fillColorString][]
+    , fill fillColorString
+    , opacity (toString opacityValue)][]  
+
+svgCircleFromLocation : String -> number -> Vec2.Vec2 -> Svg a
+svgCircleFromLocation = svgCircleWithOpacityFromLocation 1
 
 svgFromPlayerProjectile : PlayerProjectile -> Svg a
 svgFromPlayerProjectile playerProjectile =
@@ -323,14 +337,19 @@ svgFromEnemy enemy hit =
   let
     color = if hit then "white" else "grey"
   in
-    svgCircleFromLocation color (enemySize / 2) enemy.location
+    svgCircleFromLocation color (enemySize // 2) enemy.location
 
 svgFromParticle : Particle -> Int -> Svg a
 svgFromParticle particle time =
   let
     age = time - particle.spawnTime
+    ageRelativeMilli = age * 1000 // particle.template.ageMax
+    sizeStart = particle.template.sizeStart
+    opacityStart = particle.template.opacityStart
+    size = toFloat (sizeStart + (particle.template.sizeFinal - sizeStart) * ageRelativeMilli // 1000) / 1000
+    opacity = toFloat (opacityStart + (particle.template.opacityFinal - opacityStart) * ageRelativeMilli // 1000) / 1000
   in
-    svgCircleFromLocation particle.template.color (toFloat particle.template.size / 2) particle.location
+    svgCircleWithOpacityFromLocation opacity particle.template.color (size / 2) particle.location
 
 view : Model -> Html Msg
 view model =
