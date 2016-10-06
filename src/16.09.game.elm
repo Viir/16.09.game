@@ -375,7 +375,7 @@ view model =
       |> List.map (\particle -> svgFromParticle particle time)
 
   in
-    svg [ viewBox ("0 0 " ++ viewportWidthString ++ " " ++ viewportHeightString), width "800px" ]
+    svg [ viewBox ("0 0 " ++ viewportWidthString ++ " " ++ viewportHeightString), width "96%", height "96%" ]
       [
         rect [x "0", y "0", width viewportWidthString, height viewportHeightString, fill "black"] [],
         rect [
